@@ -15,14 +15,12 @@ const countGroups = (input, strat) =>
       .size)
     .reduce((a, b) => a + b)
 
-fs.readFile(__dirname + "/puzzle_inputs/day06.txt", 'utf8', (_error, data) => {
-  const puzzleInput = data.trim()
+puzzleInput = fs.readFileSync(__dirname + "/puzzle_inputs/day06.txt", "utf-8").trim()
 
-  const part1 = countGroups(puzzleInput, union)
-  assert.equal(part1, 6878)
-  console.log("Part 1:", part1)
+const part1 = countGroups(puzzleInput, union)
+assert.equal(part1, 6878)
+console.log("Part 1:", part1)
 
-  const part2 = countGroups(puzzleInput, intersection)
-  assert.equal(part2, 3464)
-  console.log("Part 2:", part2)
-});
+const part2 = countGroups(puzzleInput, intersection)
+assert.equal(part2, 3464)
+console.log("Part 2:", part2)
