@@ -23,4 +23,6 @@ day 05: raco pkg install threading; racket day05.rkt
 day 06: node day06.js
 day 07: swipl -q -f day07.pl
 day 08: swipl -q -f day08.pl
+day 09: swipl -q -f day09part1.pl
+        ruby day09part2.rb
 ```
