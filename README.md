@@ -25,4 +25,6 @@ day 07: swipl -q -f day07.pl
 day 08: swipl -q -f day08.pl
 day 09: swipl -q -f day09part1.pl
         ruby day09part2.rb
+day 10:
+day 11: swipl -q -f day11.pl
 ```
