@@ -39,9 +39,7 @@ topCalorieTotals = \input ->
     |> Result.map \totals -> List.sublist totals {start: 0, len: 3}
 
 combine : List (Result a e) -> Result (List a) e
-combine = \list ->
-    List.walkTry list [] \acc, elem ->
-        Result.map elem \okElem -> List.append acc okElem
+combine = \list -> List.mapTry list \r -> r
 
 expect topCalorieTotals exampleInput == Ok [24000, 11000, 10000]
 expect topCalorieTotals puzzleInput == Ok [66186, 65638, 64980]
