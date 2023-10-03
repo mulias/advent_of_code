@@ -1,13 +1,12 @@
 app "day02"
     packages {
         cli: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br",
-        parser: "../Parser/main.roc",
+        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.1.0/vPU-UZbWGIXsAfcJvAnmU3t3SWlHoG_GauZpqzJiBKA.tar.br",
     }
     imports [
         cli.Stdout,
-        parser.Core.{ Parser, const, between, keep, skip, sepBy, oneOf, map },
+        parser.Core.{ Parser, const, between, keep, skip, sepBy, oneOf, map, chompWhile },
         parser.String.{ parseStr, codeunit },
-        parser.Whitespace.{ optionalWhitespace },
         "input.txt" as puzzleInput : Str,
         "example.txt" as exampleInput : Str,
     ]
@@ -122,3 +121,18 @@ playerParser =
         codeunit 'Y' |> map \_ -> { playerHand: Paper, playerGoal: Draw },
         codeunit 'Z' |> map \_ -> { playerHand: Scissors, playerGoal: Win },
     ]
+
+isWhitespace : U8 -> Bool
+isWhitespace = \char ->
+    when char is
+        ' ' -> Bool.true
+        '\n' -> Bool.true
+        '\t' -> Bool.true
+        11 -> Bool.true # U+000B LINE TABULATION
+        12 -> Bool.true # U+000C FORM FEED
+        '\r' -> Bool.true
+        _ -> Bool.false
+
+optionalWhitespace : Parser (List U8) (List U8)
+optionalWhitespace =
+    chompWhile isWhitespace
