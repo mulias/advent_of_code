@@ -16,7 +16,9 @@ Solution : { part1 : Str, part2 : Str }
 
 CraneSpec : [CrateMover9000, CrateMover9001]
 
-Stack : List U8
+Crate : U8
+
+Stack : List Crate
 
 StackId : Nat
 
@@ -47,7 +49,7 @@ main = Stdout.line "Part 1: \(puzzle.part1)\nPart 2: \(puzzle.part2)"
 topCrates : Stacks -> Str
 topCrates = \stacks ->
     top = Dict.walk stacks [] \crates, _col, stack ->
-        nextCrate = stack |> List.get 0 |> Result.withDefault ' '
+        nextCrate = stack |> List.get 0 |> orCrash "Unexpected empty stack"
         List.append crates nextCrate
 
     top |> Str.fromUtf8 |> orCrash "Error: UTF8 to String conversion issue"
@@ -60,11 +62,13 @@ performStep : Stacks, Step, CraneSpec -> Stacks
 performStep = \stacks, step, craneSpec ->
     sourceStack = getStack stacks step.source
     destStack = getStack stacks step.dest
-    { before: crates, others: newSourceStack } = List.split sourceStack step.count
+
+    { before: movedCrates, others: newSourceStack } = List.split sourceStack step.count
+
     newDestStack =
         when craneSpec is
-            CrateMover9000 -> List.concat (List.reverse crates) destStack
-            CrateMover9001 -> List.concat crates destStack
+            CrateMover9000 -> List.concat (List.reverse movedCrates) destStack
+            CrateMover9001 -> List.concat movedCrates destStack
 
     stacks
     |> Dict.insert step.source newSourceStack
@@ -72,9 +76,7 @@ performStep = \stacks, step, craneSpec ->
 
 getStack : Stacks, StackId -> Stack
 getStack = \stacks, stackId ->
-    when Dict.get stacks stackId is
-        Ok stack -> stack
-        Err KeyNotFound -> crash "Error: can't find stack #\(Num.toStr stackId)"
+    stacks |> Dict.get stackId |> orCrash "Error: can't find stack #\(Num.toStr stackId)"
 
 parseInput : Str -> Input
 parseInput = \inputStr ->
@@ -83,6 +85,7 @@ parseInput = \inputStr ->
         Err (ParsingFailure msg) -> crash "parsing failure '\(msg)'"
         Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
 
+inputParser : Parser RawStr Input
 inputParser =
     const (\stacks -> \steps -> { stacks, steps })
     |> keep stacksParser
@@ -90,46 +93,61 @@ inputParser =
     |> keep stepsParser
     |> skip optionalWhitespace
 
+stacksParser : Parser RawStr Stacks
 stacksParser =
     const
-        (\cargoRows -> \labels ->
-                cargoCols = transpose cargoRows
-                crateCols = List.map cargoCols \col ->
-                    List.walk col [] \acc, cargo ->
-                        when cargo is
-                            NoCrate -> acc
-                            Crate crate -> List.append acc crate
-
+        (\crateCols -> \labels ->
                 labels
                 |> List.map2 crateCols \label, col -> (label, col)
                 |> Dict.fromList
         )
-    |> keep cargoRowsParser
+    |> keep crateColsParser
     |> skip optionalWhitespace
     |> keep labelsParser
 
+# parse rows of `Cargo` and `NoCargo` values, transpose the rows to get the
+# columns as seperate lists, then remove the `NoCargo` values since they should
+# now be at the end of each col list
+crateColsParser : Parser RawStr (List Stack)
+crateColsParser =
+    cargoRowsParser
+    |> map \cargoRows ->
+        cargoRows
+        |> transpose
+        |> List.map \col ->
+            List.walk col [] \acc, cargo ->
+                when cargo is
+                    NoCargo -> acc
+                    Cargo crate -> List.append acc crate
+
+cargoRowsParser : Parser RawStr (List (List [Cargo Crate, NoCargo]))
 cargoRowsParser = sepBy1 cargoRowParser (codeunit '\n')
 
+cargoRowParser : Parser RawStr (List [Cargo Crate, NoCargo])
 cargoRowParser = sepBy1 cargoParser (codeunit ' ')
 
-cargoParser = oneOf [crateParser, noCrateParser]
+cargoParser : Parser RawStr [Cargo Crate, NoCargo]
+cargoParser = oneOf [crateParser, noCargoParser]
 
 crateParser =
-    const (Crate)
+    const (Cargo)
     |> skip (codeunit '[')
     |> keep anyCodeunit
     |> skip (codeunit ']')
 
-noCrateParser = string "   " |> map \_ -> NoCrate
+noCargoParser = string "   " |> map \_ -> NoCargo
 
+labelsParser : Parser RawStr (List Nat)
 labelsParser =
     digits
     |> sepBy1 optionalWhitespace
     |> between optionalWhitespace optionalWhitespace
 
+stepsParser : Parser RawStr (List Step)
 stepsParser =
     sepBy1 stepParser optionalWhitespace
 
+stepParser : Parser RawStr Step
 stepParser =
     const (\count -> \source -> \dest -> { count, source, dest })
     |> skip (string "move ")
@@ -150,7 +168,7 @@ isWhitespace = \char ->
         '\r' -> Bool.true
         _ -> Bool.false
 
-optionalWhitespace : Parser (List U8) (List U8)
+optionalWhitespace : Parser RawStr RawStr
 optionalWhitespace =
     chompWhile isWhitespace
 
