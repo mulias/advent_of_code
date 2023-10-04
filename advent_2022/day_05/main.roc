@@ -79,9 +79,7 @@ getStack = \stacks, stackId ->
 parseInput : Str -> Input
 parseInput = \inputStr ->
     when parseStr inputParser inputStr is
-        Ok input ->
-            dbg input
-            input
+        Ok input -> input
         Err (ParsingFailure msg) -> crash "parsing failure '\(msg)'"
         Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
 
