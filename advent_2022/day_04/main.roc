@@ -18,7 +18,9 @@ main =
     part2 = "bar"
     Stdout.line "Part 1: \(part1)\nPart 2: \(part2)"
 
-AssignmentPair : (Range Nat, Range Nat)
+Assignment : Range (Integer Natural)
+
+AssignmentPair : (AssignmentPair, AssignmentPair)
 
 exampleAssignmentPairs = parseInput exampleInput
 
@@ -43,12 +45,12 @@ inputParser =
 
 assignmentPairParser =
     const (\elf1 -> \elf2 -> (elf1, elf2))
-    |> keep rangeParser
+    |> keep assignmentParser
     |> skip (codeunit ',')
-    |> keep rangeParser
+    |> keep assignmentParser
 
-rangeParser : Parser RawStr (Range Nat)
-rangeParser =
+assignmentParser : Parser RawStr Assignment
+assignmentParser =
     const (\first -> \last -> Range.new first last)
     |> keep digits
     |> skip (codeunit '-')

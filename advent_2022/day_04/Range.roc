@@ -11,6 +11,10 @@ min = \{ first, last } -> if first <= last then first else last
 max : Range a -> Num a
 max = \{ first, last } -> if first <= last then last else first
 
+isEqual : Range a, Range a -> Bool
+isEqual = \rangeA, rangeB ->
+    min rangeA == min rangeB && max rangeA == max rangeB
+
 intersection : Range a, Range a -> [Disjoint, Intersecting (Range a)]
 intersection = \rangeA, rangeB ->
     if min rangeA > max rangeB || min rangeB > max rangeA then
@@ -24,4 +28,6 @@ expect intersection (new 0 5) (new 1 3) == Intersecting (new 1 3)
 
 isContained : Range a, Range a -> Bool
 isContained = \inner, outer ->
-    intersection inner outer == Intersecting inner
+    when intersection inner outer is
+        Disjoint -> Bool.false
+        Intersecting range -> isEqual range inner
