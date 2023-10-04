@@ -1,21 +1,21 @@
 interface Range exposes [Range, new, min, max, intersection, isContained] imports []
 
-Range a : { first : Num a, last : Num a } where a implements Bool.Eq
+Range : { first : Nat, last : Nat }
 
-new : Num a, Num a -> Range a
+new : Nat, Nat -> Range
 new = \a, b -> { first: a, last: b }
 
-min : Range a -> Num a
+min : Range -> Nat
 min = \{ first, last } -> if first <= last then first else last
 
-max : Range a -> Num a
+max : Range -> Nat
 max = \{ first, last } -> if first <= last then last else first
 
-isEqual : Range a, Range a -> Bool
+isEqual : Range, Range -> Bool
 isEqual = \rangeA, rangeB ->
     min rangeA == min rangeB && max rangeA == max rangeB
 
-intersection : Range a, Range a -> [Disjoint, Intersecting (Range a)]
+intersection : Range, Range -> [Disjoint, Intersecting Range]
 intersection = \rangeA, rangeB ->
     if min rangeA > max rangeB || min rangeB > max rangeA then
         Disjoint
@@ -26,7 +26,7 @@ intersection = \rangeA, rangeB ->
 
 expect intersection (new 0 5) (new 1 3) == Intersecting (new 1 3)
 
-isContained : Range a, Range a -> Bool
+isContained : Range, Range -> Bool
 isContained = \inner, outer ->
     when intersection inner outer is
         Disjoint -> Bool.false

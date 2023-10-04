@@ -14,17 +14,17 @@ app "day04"
     provides [main] to cli
 
 main =
-    part1 = "foo"
+    part1 = fullOverlapCount puzzleAssignmentPairs |> Num.toStr
     part2 = "bar"
     Stdout.line "Part 1: \(part1)\nPart 2: \(part2)"
 
-Assignment : Range (Integer Natural)
-
-AssignmentPair : (AssignmentPair, AssignmentPair)
+AssignmentPair : (Range, Range)
 
 exampleAssignmentPairs = parseInput exampleInput
+puzzleAssignmentPairs = parseInput puzzleInput
 
 expect fullOverlapCount exampleAssignmentPairs == 2
+expect fullOverlapCount puzzleAssignmentPairs == 500
 
 fullOverlapCount : List AssignmentPair -> Nat
 fullOverlapCount = \assignmentPairs ->
@@ -45,12 +45,12 @@ inputParser =
 
 assignmentPairParser =
     const (\elf1 -> \elf2 -> (elf1, elf2))
-    |> keep assignmentParser
+    |> keep rangeParser
     |> skip (codeunit ',')
-    |> keep assignmentParser
+    |> keep rangeParser
 
-assignmentParser : Parser RawStr Assignment
-assignmentParser =
+rangeParser : Parser RawStr Range
+rangeParser =
     const (\first -> \last -> Range.new first last)
     |> keep digits
     |> skip (codeunit '-')
