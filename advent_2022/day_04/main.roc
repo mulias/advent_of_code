@@ -5,8 +5,8 @@ app "day04"
     }
     imports [
         cli.Stdout,
-        parser.Core.{ Parser, between, sepBy, map, chompUntil, chompWhile, keep, skip, const, oneOrMore },
-        parser.String.{ RawStr, parseStr, codeunit, digit },
+        parser.Core.{ Parser, between, sepBy, chompWhile, keep, skip, const },
+        parser.String.{ RawStr, parseStr, codeunit, digits },
         Range.{ Range },
         "input.txt" as puzzleInput : Str,
         "example.txt" as exampleInput : Str,
@@ -14,8 +14,8 @@ app "day04"
     provides [main] to cli
 
 main =
-    part1 = fullOverlapCount puzzleAssignmentPairs |> Num.toStr
-    part2 = "bar"
+    part1 = completeOverlapCount puzzleAssignmentPairs |> Num.toStr
+    part2 = anyOverlapCount puzzleAssignmentPairs |> Num.toStr
     Stdout.line "Part 1: \(part1)\nPart 2: \(part2)"
 
 AssignmentPair : (Range, Range)
@@ -23,13 +23,21 @@ AssignmentPair : (Range, Range)
 exampleAssignmentPairs = parseInput exampleInput
 puzzleAssignmentPairs = parseInput puzzleInput
 
-expect fullOverlapCount exampleAssignmentPairs == 2
-expect fullOverlapCount puzzleAssignmentPairs == 500
+expect completeOverlapCount exampleAssignmentPairs == 2
+expect completeOverlapCount puzzleAssignmentPairs == 500
 
-fullOverlapCount : List AssignmentPair -> Nat
-fullOverlapCount = \assignmentPairs ->
+expect anyOverlapCount exampleAssignmentPairs == 4
+expect anyOverlapCount puzzleAssignmentPairs == 815
+
+completeOverlapCount : List AssignmentPair -> Nat
+completeOverlapCount = \assignmentPairs ->
     (elf1, elf2) <- List.countIf assignmentPairs
     Range.isContained elf1 elf2 || Range.isContained elf2 elf1
+
+anyOverlapCount : List AssignmentPair -> Nat
+anyOverlapCount = \assignmentPairs ->
+    (elf1, elf2) <- List.countIf assignmentPairs
+    Range.intersection elf1 elf2 != Disjoint
 
 parseInput : Str -> List AssignmentPair
 parseInput = \input ->
@@ -56,11 +64,6 @@ rangeParser =
     |> skip (codeunit '-')
     |> keep digits
 
-digits : Parser RawStr Nat
-digits =
-    oneOrMore digit
-    |> map \ds -> List.walk ds 0 (\sum, d -> sum * 10 + d)
-
 isWhitespace : U8 -> Bool
 isWhitespace = \char ->
     when char is
@@ -75,4 +78,3 @@ isWhitespace = \char ->
 optionalWhitespace : Parser (List U8) (List U8)
 optionalWhitespace =
     chompWhile isWhitespace
-
