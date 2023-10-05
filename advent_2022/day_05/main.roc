@@ -110,15 +110,12 @@ stacksParser =
 # now be at the end of each col list
 crateColsParser : Parser RawStr (List Stack)
 crateColsParser =
-    cargoRowsParser
-    |> map \cargoRows ->
-        cargoRows
-        |> transpose
-        |> List.map \col ->
-            List.walk col [] \acc, cargo ->
-                when cargo is
-                    NoCargo -> acc
-                    Cargo crate -> List.append acc crate
+    cargoRows <- map cargoRowsParser
+    col <- List.map (transpose cargoRows)
+    acc, cargo <- List.walk col []
+    when cargo is
+        NoCargo -> acc
+        Cargo crate -> List.append acc crate
 
 cargoRowsParser : Parser RawStr (List (List [Cargo Crate, NoCargo]))
 cargoRowsParser = sepBy1 cargoRowParser (codeunit '\n')
