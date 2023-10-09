@@ -5,7 +5,7 @@ app "day07"
     }
     imports [
         cli.Stdout,
-        parser.Core.{ Parser, parsePartial, buildPrimitiveParser, many, between, chompWhile, chompUntil, keep, skip, const, lazy },
+        parser.Core.{ Parser, parsePartial, buildPrimitiveParser, many, between, chompWhile, chompUntil, keep, skip, const, maybe },
         parser.String.{ RawStr, parseStr, string, digits },
         "input.txt" as puzzleInput : Str,
         "example.txt" as exampleInput : Str,
@@ -24,8 +24,11 @@ puzzleRootDir = parseInput puzzleInput
 expect exampleRootDir |> sizes |> sumOfSmallDirs == 95437
 expect exampleRootDir |> sizes |> sizeOfDirToDelete == 24933642
 
+expect puzzleRootDir |> sizes |> sumOfSmallDirs == 1501149
+expect puzzleRootDir |> sizes |> sizeOfDirToDelete == 10096985
+
 Dir : [
-    Node { files : List Nat, subDirs : List Dir },
+    Branch { files : List Nat, subDirs : List Dir },
     Leaf { files : List Nat },
 ]
 
@@ -42,7 +45,7 @@ filesystemSize = 70000000
 sizes : Dir -> DirSizes
 sizes = \dir ->
     when dir is
-        Node { files, subDirs } ->
+        Branch { files, subDirs } ->
             subDirSizes = List.map subDirs sizes
 
             subDirDirectSubDirTotals = subDirSizes |> List.map .directSubDirTotals |> List.join
@@ -91,6 +94,13 @@ sizeOfDirToDelete = \dirSizes ->
     |> List.first
     |> Result.withDefault 0
 
+newDir : List Nat, List Dir -> Dir
+newDir = \files, subDirs ->
+    if List.isEmpty subDirs then
+        Leaf { files }
+    else
+        Branch { files, subDirs }
+
 parseInput : Str -> Dir
 parseInput = \inputStr ->
     when parseStr inputParser inputStr is
@@ -99,28 +109,16 @@ parseInput = \inputStr ->
         Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
 
 inputParser : Parser RawStr Dir
-inputParser =
-    dirParser
-    |> between optionalWhitespace optionalWhitespace
+inputParser = dirParser |> between optionalWhitespace optionalWhitespace
 
 dirParser : Parser RawStr Dir
 dirParser =
-    lazy \{} ->
-        const
-            (\files -> \subDirs ->
-                    if List.isEmpty subDirs then
-                        Leaf { files }
-                    else
-                        Node { files, subDirs }
-            )
-        |> skip dirNameParser
-        |> keep filesParser
-        |> keep (
-            # const []
-            # many dirParser
-            manyUntil dirParser (string "$ cd ..")
-        )
-        |> skip optionalWhitespace
+    const (\files -> \subDirs -> newDir files subDirs)
+    |> skip dirNameParser
+    |> keep filesParser
+    |> keep subDirsParser
+    |> skip (maybe dirBackParser)
+    |> skip optionalWhitespace
 
 dirNameParser : Parser RawStr RawStr
 dirNameParser =
@@ -133,7 +131,9 @@ filesParser : Parser RawStr (List Nat)
 filesParser =
     const (\fileSizes -> fileSizes)
     |> skip (string "$ ls\n")
+    |> skip (many dirListingParser)
     |> keep (many fileSizeParser)
+    |> skip (many dirListingParser)
     |> skip optionalWhitespace
 
 fileSizeParser : Parser RawStr Nat
@@ -142,6 +142,7 @@ fileSizeParser =
     |> skip (many dirListingParser)
     |> keep digits
     |> skip (chompUntil '\n')
+    |> skip optionalWhitespace
     |> skip (many dirListingParser)
 
 dirListingParser : Parser RawStr RawStr
@@ -151,6 +152,13 @@ dirListingParser =
     |> skip (string "dir ")
     |> keep (chompUntil '\n')
     |> skip optionalWhitespace
+
+subDirsParser : Parser RawStr (List Dir)
+subDirsParser =
+    buildPrimitiveParser \input ->
+        parsePartial (manyUntil dirParser dirBackParser) input
+
+dirBackParser = string "$ cd .."
 
 isWhitespace : U8 -> Bool
 isWhitespace = \char ->
@@ -187,10 +195,10 @@ expect
 
 expect
     parseInput exampleInput
-    == Node {
+    == Branch {
         files: [14848514, 8504156],
         subDirs: [
-            Node {
+            Branch {
                 files: [29116, 2557, 62596],
                 subDirs: [
                     Leaf { files: [584] },
