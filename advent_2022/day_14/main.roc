@@ -28,14 +28,14 @@ expect puzzleCave |> addFloor |> addMaxSand |> countSand == 25500
 
 main =
     part1Cave = puzzleCave |> addMaxSand
-    part1Count = countSand part1Cave
+    part1Count = part1Cave |> countSand |> Num.toStr
 
     part2Cave = puzzleCave |> addFloor |> addMaxSand
-    part2Count = countSand part2Cave
+    part2Count = part2Cave |> countSand |> Num.toStr
 
-    _ <- Stdout.line "Part 1: \(Num.toStr part1Count)" |> Task.await
+    _ <- Stdout.line "Part 1: \(part1Count)" |> Task.await
     _ <- Stdout.write (displayCave part1Cave) |> Task.await
-    _ <- Stdout.line "Part 2: \(Num.toStr part2Count)" |> Task.await
+    _ <- Stdout.line "Part 2: \(part2Count)" |> Task.await
     _ <- Stdout.write (displayCave part2Cave) |> Task.await
     Task.ok {}
 
@@ -49,25 +49,21 @@ addMaxSand = \cave ->
         Ok sandyCave -> addMaxSand sandyCave
         Err _ -> cave
 
-addSand : Cave, Array2D.Index -> Result Cave [SandFellIntoTheInfiniteAbyss, SandSourceBlocked]
+addSand : Cave, Array2D.Index -> Result Cave [SandFellIntoTheInfiniteAbyss, Blocked]
 addSand = \cave, pos ->
     when Array2D.get cave pos is
         Err OutOfBounds -> Err SandFellIntoTheInfiniteAbyss
-        Ok Sand | Ok Rock -> Err SandSourceBlocked
+        Ok Sand | Ok Rock -> Err Blocked
         Ok Air ->
-            when Array2D.get cave (down pos) is
-                Err OutOfBounds -> Err SandFellIntoTheInfiniteAbyss
-                Ok Air -> addSand cave (down pos)
-                Ok Sand | Ok Rock ->
-                    when Array2D.get cave (downLeft pos) is
-                        Err OutOfBounds -> Err SandFellIntoTheInfiniteAbyss
-                        Ok Air -> addSand cave (downLeft pos)
-                        Ok Sand | Ok Rock ->
-                            when Array2D.get cave (downRight pos) is
-                                Err OutOfBounds -> Err SandFellIntoTheInfiniteAbyss
-                                Ok Air -> addSand cave (downRight pos)
-                                Ok Sand | Ok Rock ->
-                                    Ok (Array2D.set cave pos Sand)
+            addSand cave (down pos)
+            |> elseIfBlocked \_ -> addSand cave (downLeft pos)
+            |> elseIfBlocked \_ -> addSand cave (downRight pos)
+            |> elseIfBlocked \_ -> Ok (Array2D.set cave pos Sand)
+
+elseIfBlocked = \result, thunk ->
+    when result is
+        Err Blocked -> thunk {}
+        _ -> result
 
 down = \{ x, y } -> { x: x + 1, y }
 downLeft = \{ x, y } -> { x: x + 1, y: y - 1 }
