@@ -51,7 +51,7 @@ groupSharedItemPriorities : List Rucksack -> List U8
 groupSharedItemPriorities = \rucksacks ->
     rucksacks
     |> List.map allItems
-    |> chunkEvery 3
+    |> List.chunksOf 3
     |> List.map \group ->
         shared = group |> intersectAll |> Set.toList
 
@@ -70,16 +70,6 @@ itemPriority = \item ->
 
 allItems : Rucksack -> Set Item
 allItems = \(left, right) -> Set.union left right
-
-chunkEvery : List a, Nat -> List (List a)
-chunkEvery = \lst, idx ->
-    { before, others } = List.split lst idx
-    if List.isEmpty others then
-        [before]
-    else
-        List.prepend (chunkEvery others idx) before
-
-expect chunkEvery [1, 2, 3, 4, 5, 6, 7, 8] 3 == [[1, 2, 3], [4, 5, 6], [7, 8]]
 
 intersectAll : List (Set a) -> Set a
 intersectAll = \sets ->
