@@ -6,3 +6,4 @@
 
 # Ignore bin files, which by convention are named after the AoC day, "day07" etc
 **/day??
+**/main
