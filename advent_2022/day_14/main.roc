@@ -1,11 +1,12 @@
 app "day14"
     packages {
         cli: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br",
+        array2d: "https://github.com/mulias/roc-array2d/releases/download/v0.0.1/bwn1lsf1TyqM5lsQLXuvawVFXobAGDBVhN0wwFNNsMA.tar.br",
     }
     imports [
         cli.Stdout,
         cli.Task,
-        Array2D.{ Array2D },
+        array2d.Array2D.{ Array2D },
         "input.txt" as puzzleInput : Str,
         "example.txt" as exampleInput : Str,
     ]
@@ -81,7 +82,7 @@ toPaths : Str -> List Path
 toPaths = \input ->
     input
     |> Str.split "\n"
-    |> List.dropLast
+    |> List.dropLast 1
     |> List.map \line ->
         line
         |> Str.split " -> "
@@ -103,7 +104,7 @@ setRockPath = \cave, path ->
     when path is
         [point1, point2, ..] ->
             nextCave = addRockLineSegment cave point1 point2
-            nextPath = List.dropFirst path
+            nextPath = List.dropFirst path 1
             setRockPath nextCave nextPath
 
         _ -> cave
@@ -137,7 +138,7 @@ addFloor = \cave ->
     |> Array2D.findLastIndex \material -> material == Rock
     |> Result.map \{ x: floorLevel, y: _ } ->
         point1 = { x: floorLevel + 2, y: 0 }
-        point2 = { x: floorLevel + 2, y: Array2D.lastCol cave }
+        point2 = { x: floorLevel + 2, y: cave |> Array2D.shape |> .dimY }
         addRockLineSegment cave point1 point2
     |> orCrash "Error finding floor level"
 

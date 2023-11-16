@@ -1,13 +1,14 @@
 app "day08"
     packages {
         cli: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br",
-        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.1.0/vPU-UZbWGIXsAfcJvAnmU3t3SWlHoG_GauZpqzJiBKA.tar.br",
+        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
+        array2d: "https://github.com/mulias/roc-array2d/releases/download/v0.0.1/bwn1lsf1TyqM5lsQLXuvawVFXobAGDBVhN0wwFNNsMA.tar.br",
     }
     imports [
         cli.Stdout,
         parser.Core.{ Parser, map, between, chompWhile, sepBy1, oneOrMore },
         parser.String.{ RawStr, parseStr, string, digit },
-        Array2D.{ Array2D },
+        array2d.Array2D.{ Array2D },
         "input.txt" as puzzleInput : Str,
         "example.txt" as exampleInput : Str,
     ]
@@ -38,25 +39,29 @@ visibleTreesCount = \trees ->
 
     startState = { trees, maxHeight: 0 }
 
-    withLeftVisibility = Array2D.walk trees startState {} \state, tree, index ->
+    { dimX, dimY } = Array2D.shape trees
+    firstIndex = { x: 0, y: 0 }
+    lastIndex = { x: dimX - 1, y: dimY - 1 }
+
+    withLeftVisibility = Array2D.walk trees startState { direction: Forwards, orientation: Rows, start: firstIndex } \state, tree, index ->
         if Array2D.isRowStart index || tree.height > state.maxHeight then
             setTreeVisible state tree index
         else
             state
 
-    withRightVisibility = Array2D.walk trees withLeftVisibility { direction: Backwards } \state, tree, index ->
+    withRightVisibility = Array2D.walk trees withLeftVisibility { direction: Backwards, orientation: Rows, start: lastIndex } \state, tree, index ->
         if Array2D.isRowEnd trees index || tree.height > state.maxHeight then
             setTreeVisible state tree index
         else
             state
 
-    withTopVisibility = Array2D.walk trees withRightVisibility { orientation: Cols } \state, tree, index ->
+    withTopVisibility = Array2D.walk trees withRightVisibility { direction: Forwards, orientation: Cols, start: firstIndex } \state, tree, index ->
         if Array2D.isColStart index || tree.height > state.maxHeight then
             setTreeVisible state tree index
         else
             state
 
-    allVisibility = Array2D.walk trees withTopVisibility { direction: Backwards, orientation: Cols } \state, tree, index ->
+    allVisibility = Array2D.walk trees withTopVisibility { direction: Backwards, orientation: Cols, start: lastIndex } \state, tree, index ->
         if Array2D.isColEnd trees index || tree.height > state.maxHeight then
             setTreeVisible state tree index
         else
@@ -66,7 +71,7 @@ visibleTreesCount = \trees ->
 
 scenicTreeScore : Trees -> Nat
 scenicTreeScore = \trees ->
-    Array2D.walk trees 0 {} \highScore, tree, treeIndex ->
+    Array2D.walk trees 0 { direction: Forwards, orientation: Rows, start: { x: 0, y: 0 } } \highScore, tree, treeIndex ->
         visibleCount = \count, otherTree, otherIndex ->
             if treeIndex == otherIndex then
                 Continue (count + 1)
@@ -75,25 +80,25 @@ scenicTreeScore = \trees ->
             else
                 Break count
 
-        viewLeft = Array2D.walkUntil trees 0 { direction: BackwardsFrom treeIndex } \count, otherTree, otherIndex ->
+        viewLeft = Array2D.walkUntil trees 0 { direction: Backwards, orientation: Rows, start: treeIndex } \count, otherTree, otherIndex ->
             if Array2D.isRowStart otherIndex then
                 Break count
             else
                 visibleCount count otherTree otherIndex
 
-        viewRight = Array2D.walkUntil trees 0 { direction: ForwardFrom treeIndex } \count, otherTree, otherIndex ->
+        viewRight = Array2D.walkUntil trees 0 { direction: Forwards, orientation: Rows, start: treeIndex } \count, otherTree, otherIndex ->
             if Array2D.isRowEnd trees otherIndex then
                 Break count
             else
                 visibleCount count otherTree otherIndex
 
-        viewUp = Array2D.walkUntil trees 0 { direction: BackwardsFrom treeIndex, orientation: Cols } \count, otherTree, otherIndex ->
+        viewUp = Array2D.walkUntil trees 0 { direction: Backwards, orientation: Cols, start: treeIndex } \count, otherTree, otherIndex ->
             if Array2D.isColStart otherIndex then
                 Break count
             else
                 visibleCount count otherTree otherIndex
 
-        viewDown = Array2D.walkUntil trees 0 { direction: ForwardFrom treeIndex, orientation: Cols } \count, otherTree, otherIndex ->
+        viewDown = Array2D.walkUntil trees 0 { direction: Forwards, orientation: Cols, start: treeIndex } \count, otherTree, otherIndex ->
             if Array2D.isColEnd trees otherIndex then
                 Break count
             else
