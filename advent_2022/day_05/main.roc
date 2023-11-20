@@ -1,22 +1,23 @@
 app "day05"
     packages {
         cli: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br",
-        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.1.0/vPU-UZbWGIXsAfcJvAnmU3t3SWlHoG_GauZpqzJiBKA.tar.br",
+        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
+        array2d: "https://github.com/mulias/roc-array2d/releases/download/v0.0.1/bwn1lsf1TyqM5lsQLXuvawVFXobAGDBVhN0wwFNNsMA.tar.br",
     }
     imports [
         cli.Stdout,
-        parser.Core.{ Parser, between, sepBy1, chompWhile, keep, skip, const, map, oneOf },
+        cli.Task,
+        parser.Core.{ Parser, between, sepBy1, chompWhile, keep, skip, const, map, oneOf, buildPrimitiveParser, parsePartial, fail },
         parser.String.{ RawStr, parseStr, string, codeunit, digits, anyCodeunit },
+        array2d.Array2D.{ Array2D },
         "input.txt" as puzzleInput : Str,
         "example.txt" as exampleInput : Str,
     ]
     provides [main] to cli
 
-Solution : { part1 : Str, part2 : Str }
-
 CraneSpec : [CrateMover9000, CrateMover9001]
 
-Crate : U8
+Crate : Str
 
 Stack : List Crate
 
@@ -28,31 +29,31 @@ Step : { count : Nat, source : StackId, dest : StackId }
 
 Input : { stacks : Stacks, steps : List Step }
 
-puzzle : Solution
-puzzle = puzzleInput |> parseInput |> solution
+expect puzzleInput |> parseInput |> finalState CrateMover9000 |> topCrates ==  "GFTNRBZPF"
+expect puzzleInput |> parseInput |> finalState CrateMover9001 |> topCrates == "VRQWPDSGP"
 
-expect puzzle == { part1: "GFTNRBZPF", part2: "VRQWPDSGP" }
+expect exampleInput |> parseInput |> finalState CrateMover9000 |> topCrates == "CMZ"
+expect exampleInput |> parseInput |> finalState CrateMover9001 |> topCrates == "MCD"
 
-example : Solution
-example = exampleInput |> parseInput |> solution
+main =
+    part1 = puzzleInput |> parseInput |> finalState CrateMover9000
+    part2 = puzzleInput |> parseInput |> finalState CrateMover9001
 
-expect example == { part1: "CMZ", part2: "MCD" }
-
-solution : Input -> Solution
-solution = \input -> {
-    part1: input |> finalState CrateMover9000 |> topCrates,
-    part2: input |> finalState CrateMover9001 |> topCrates,
-}
-
-main = Stdout.line "Part 1: \(puzzle.part1)\nPart 2: \(puzzle.part2)"
+    _ <- Stdout.line "Part 1: \(topCrates part1)" |> Task.await
+    _ <- Stdout.write "\(displayStacks part1)\n\n" |> Task.await
+    _ <- Stdout.line "Part 2: \(topCrates part2)" |> Task.await
+    _ <- Stdout.write "\(displayStacks part2)\n\n" |> Task.await
+    Task.ok {}
 
 topCrates : Stacks -> Str
 topCrates = \stacks ->
-    top = Dict.walk stacks [] \crates, _col, stack ->
-        nextCrate = stack |> List.get 0 |> orCrash "Unexpected empty stack"
-        List.append crates nextCrate
-
-    top |> Str.fromUtf8 |> orCrash "Error: UTF8 to String conversion issue"
+    stacks
+    |> stacksToList
+    |> List.map \stack ->
+        stack
+        |> List.last
+        |> orCrash "Unexpected empty stack"
+    |> Str.joinWith ""
 
 finalState : Input, CraneSpec -> Stacks
 finalState = \{ stacks, steps }, spec ->
@@ -62,13 +63,14 @@ performStep : Stacks, Step, CraneSpec -> Stacks
 performStep = \stacks, step, craneSpec ->
     sourceStack = getStack stacks step.source
     destStack = getStack stacks step.dest
+    splitIndex = (List.len sourceStack) - step.count
 
-    { before: movedCrates, others: newSourceStack } = List.split sourceStack step.count
+    { before: newSourceStack, others: movedCrates } = List.split sourceStack splitIndex
 
     newDestStack =
         when craneSpec is
-            CrateMover9000 -> List.concat (List.reverse movedCrates) destStack
-            CrateMover9001 -> List.concat movedCrates destStack
+            CrateMover9000 -> List.concat destStack (List.reverse movedCrates)
+            CrateMover9001 -> List.concat destStack movedCrates
 
     stacks
     |> Dict.insert step.source newSourceStack
@@ -76,7 +78,27 @@ performStep = \stacks, step, craneSpec ->
 
 getStack : Stacks, StackId -> Stack
 getStack = \stacks, stackId ->
-    stacks |> Dict.get stackId |> orCrash "Error: can't find stack #\(Num.toStr stackId)"
+    stacks |> Dict.get stackId |> orCrash "can't find stack #\(Num.toStr stackId)"
+
+displayStacks : Stacks -> Str
+displayStacks = \stacks ->
+    stacks
+    |> stacksToList
+    |> List.map \stack -> List.map stack Ok
+    |> Array2D.fromLists (FitLongest (Err Empty))
+    |> Array2D.rotateCounterClockwise
+    |> Array2D.map \elem ->
+        when elem is
+            Ok crate -> "[\(crate)]"
+            Err Empty -> "   "
+    |> joinArrayWith " " "\n"
+
+stacksToList : Stacks -> List Stack
+stacksToList = \stacks ->
+    stacks
+    |> Dict.toList
+    |> List.sortWith \(idA, _stackA), (idB, _stackB) -> Num.compare idA idB
+    |> List.map \(_id, stack) -> stack
 
 parseInput : Str -> Input
 parseInput = \inputStr ->
@@ -105,34 +127,34 @@ stacksParser =
     |> skip optionalWhitespace
     |> keep labelsParser
 
-# parse rows of `Cargo` and `NoCargo` values, transpose the rows to get the
-# columns as seperate lists, then remove the `NoCargo` values since they should
-# now be at the end of each col list
-crateColsParser : Parser RawStr (List Stack)
+crateColsParser : Parser RawStr (List (List Crate))
 crateColsParser =
-    cargoRows <- map cargoRowsParser
-    col <- List.map (transpose cargoRows)
-    acc, cargo <- List.walk col []
-    when cargo is
-        NoCargo -> acc
-        Cargo crate -> List.append acc crate
+    map crateRowsParser \rows ->
+        rows
+        |> Array2D.rotateClockwise
+        |> Array2D.toLists
+        |> List.map \cols ->
+            List.keepOks cols \col -> col
 
-cargoRowsParser : Parser RawStr (List (List [Cargo Crate, NoCargo]))
-cargoRowsParser = sepBy1 cargoRowParser (codeunit '\n')
-
-cargoRowParser : Parser RawStr (List [Cargo Crate, NoCargo])
-cargoRowParser = sepBy1 cargoParser (codeunit ' ')
-
-cargoParser : Parser RawStr [Cargo Crate, NoCargo]
-cargoParser = oneOf [crateParser, noCargoParser]
+crateRowsParser : Parser RawStr (Array2D (Result Crate [Empty]))
+crateRowsParser =
+    table
+        (oneOf [crateParser, noCrateParser])
+        (codeunit ' ')
+        (codeunit '\n')
 
 crateParser =
-    const (Cargo)
+    const (\c ->
+        [c]
+        |> Str.fromUtf8
+        |> orCrash "Error: UTF8 to String conversion issue"
+        |> Ok
+    )
     |> skip (codeunit '[')
     |> keep anyCodeunit
     |> skip (codeunit ']')
 
-noCargoParser = string "   " |> map \_ -> NoCargo
+noCrateParser = string "   " |> map \_ -> Err Empty
 
 labelsParser : Parser RawStr (List Nat)
 labelsParser =
@@ -169,29 +191,35 @@ optionalWhitespace : Parser RawStr RawStr
 optionalWhitespace =
     chompWhile isWhitespace
 
-transpose : List (List a) -> List (List a)
-transpose = \table ->
-    transposeRec table []
+table : Parser in a, Parser in *, Parser in * -> Parser in (Array2D a)
+table = \elem, elemSep, rowSep ->
+    elem
+    |> sepBy1 elemSep
+    |> sepBy1 rowSep
+    |> andThen \rows ->
+        when Array2D.fromExactLists rows is
+            Ok array -> const array
+            Err InconsistentRowLengths -> fail "table: rows do not have consistant lengths"
 
-transposeRec : List (List a), List (List a) -> List (List a)
-transposeRec = \tableRest, tableAcc ->
-    state = { nextTableRest: [], nextTableAccRow: [] }
-    { nextTableRest, nextTableAccRow } = List.walk tableRest state \acc, row ->
-        split = List.split row 1
-        {
-            nextTableRest: List.append acc.nextTableRest split.others,
-            nextTableAccRow: List.concat acc.nextTableAccRow split.before,
-        }
+andThen : Parser input a, (a -> Parser input b) -> Parser input b
+andThen = \firstParser, buildNextParser ->
+    fun = \input ->
+        { val: firstVal, input: rest } <- Result.try (parsePartial firstParser input)
+        nextParser = buildNextParser firstVal
 
-    if List.isEmpty nextTableAccRow then
-        tableAcc
-    else
-        transposeRec nextTableRest (List.append tableAcc nextTableAccRow)
+        parsePartial nextParser rest
 
-expect transpose [[1, 2, 3], [4, 5, 6]] == [[1, 4], [2, 5], [3, 6]]
+    buildPrimitiveParser fun
 
 orCrash : Result a *, Str -> a
 orCrash = \result, msg ->
     when result is
         Ok a -> a
         Err _ -> crash msg
+
+joinArrayWith : Array2D Str, Str, Str -> Str
+joinArrayWith = \array, elemSep, rowSep ->
+    array
+    |> Array2D.toLists
+    |> List.map \row -> Str.joinWith row elemSep
+    |> Str.joinWith rowSep

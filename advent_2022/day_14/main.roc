@@ -35,9 +35,9 @@ main =
     part2Count = part2Cave |> countSand |> Num.toStr
 
     _ <- Stdout.line "Part 1: \(part1Count)" |> Task.await
-    _ <- Stdout.write (displayCave part1Cave) |> Task.await
+    _ <- Stdout.write "\(displayCave part1Cave)\n\n" |> Task.await
     _ <- Stdout.line "Part 2: \(part2Count)" |> Task.await
-    _ <- Stdout.write (displayCave part2Cave) |> Task.await
+    _ <- Stdout.write "\(displayCave part2Cave)\n\n" |> Task.await
     Task.ok {}
 
 Cave : Array2D [Air, Rock, Sand]
@@ -145,19 +145,19 @@ addFloor = \cave ->
 displayCave : Cave -> Str
 displayCave = \cave ->
     cave
-    |> Array2D.mapWithIndex \material, index ->
-        square =
-            when material is
-                Air -> "."
-                Rock -> "#"
-                Sand -> "o"
+    |> Array2D.map \material ->
+        when material is
+            Air -> "."
+            Rock -> "#"
+            Sand -> "o"
+    |> joinArrayWith "" "\n"
 
-        if Array2D.isRowEnd cave index then
-            Str.concat square "\n"
-        else
-            square
-    |> Array2D.toList
-    |> Str.joinWith ""
+joinArrayWith : Array2D Str, Str, Str -> Str
+joinArrayWith = \array, elemSep, rowSep ->
+    array
+    |> Array2D.toLists
+    |> List.map \row -> Str.joinWith row elemSep
+    |> Str.joinWith rowSep
 
 orCrash : Result a *, Str -> a
 orCrash = \result, msg ->
