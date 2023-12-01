@@ -1,8 +1,8 @@
 app "day08"
     packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.5.0/Cufzl36_SnJ4QbOoEmiJ5dIpUxBvdB3NEySvuH82Wio.tar.br",
+        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br",
         parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
-        array2d: "https://github.com/mulias/roc-array2d/releases/download/v0.0.1/bwn1lsf1TyqM5lsQLXuvawVFXobAGDBVhN0wwFNNsMA.tar.br",
+        array2d: "../../../roc-array2d/package/main.roc",
     }
     imports [
         cli.Stdout,
@@ -39,17 +39,13 @@ HeightMap : Array2D Nat
 
 VisibilityMap : Array2D Bool
 
-TreeSightLines : { index: Array2D.Index, left: Nat, right: Nat, up: Nat, down: Nat }
+TreeSightLines : { index : Array2D.Index, left : Nat, right : Nat, up : Nat, down : Nat }
 
 SightLinesMap : Array2D TreeSightLines
 
 visibleTrees : HeightMap -> VisibilityMap
 visibleTrees = \heightMap ->
     visibilityMap = Array2D.map heightMap \_elem -> Bool.false
-
-    { dimX, dimY } = Array2D.shape heightMap
-    firstIndex = { x: 0, y: 0 }
-    lastIndex = { x: dimX - 1, y: dimY - 1 }
 
     startState = { visibilityMap, maxHeight: 0 }
 
@@ -58,29 +54,49 @@ visibleTrees = \heightMap ->
         maxHeight: treeHeight,
     }
 
-    withLeft = Array2D.walk heightMap startState { direction: Forwards, orientation: Rows, start: firstIndex } \state, treeHeight, index ->
-        if Array2D.isRowStart index || treeHeight > state.maxHeight then
-            setTreeVisible state treeHeight index
-        else
-            state
+    withLeft =
+        Array2D.walk
+            heightMap
+            startState
+            { direction: Forwards, orientation: Rows }
+            \state, treeHeight, index ->
+                if Array2D.isRowStart index || treeHeight > state.maxHeight then
+                    setTreeVisible state treeHeight index
+                else
+                    state
 
-    withRight = Array2D.walk heightMap withLeft { direction: Backwards, orientation: Rows, start: lastIndex } \state, treeHeight, index ->
-        if Array2D.isRowEnd heightMap index || treeHeight > state.maxHeight then
-            setTreeVisible state treeHeight index
-        else
-            state
+    withRight =
+        Array2D.walk
+            heightMap
+            withLeft
+            { direction: Backwards, orientation: Rows }
+            \state, treeHeight, index ->
+                if Array2D.isRowEnd heightMap index || treeHeight > state.maxHeight then
+                    setTreeVisible state treeHeight index
+                else
+                    state
 
-    withTop = Array2D.walk heightMap withRight { direction: Forwards, orientation: Cols, start: firstIndex } \state, treeHeight, index ->
-        if Array2D.isColStart index || treeHeight > state.maxHeight then
-            setTreeVisible state treeHeight index
-        else
-            state
+    withTop =
+        Array2D.walk
+            heightMap
+            withRight
+            { direction: Forwards, orientation: Cols }
+            \state, treeHeight, index ->
+                if Array2D.isColStart index || treeHeight > state.maxHeight then
+                    setTreeVisible state treeHeight index
+                else
+                    state
 
-    finalState = Array2D.walk heightMap withTop { direction: Backwards, orientation: Cols, start: lastIndex } \state, treeHeight, index ->
-        if Array2D.isColEnd heightMap index || treeHeight > state.maxHeight then
-            setTreeVisible state treeHeight index
-        else
-            state
+    finalState =
+        Array2D.walk
+            heightMap
+            withTop
+            { direction: Backwards, orientation: Cols }
+            \state, treeHeight, index ->
+                if Array2D.isColEnd heightMap index || treeHeight > state.maxHeight then
+                    setTreeVisible state treeHeight index
+                else
+                    state
 
     finalState.visibilityMap
 
@@ -104,29 +120,49 @@ treeSightLines = \heightMap ->
             else
                 Break count
 
-        left = Array2D.walkUntil heightMap 0 { direction: Backwards, orientation: Rows, start: treeIndex } \count, otherTree, otherIndex ->
-            if Array2D.isRowStart otherIndex then
-                Break count
-            else
-                visibleCount count otherTree otherIndex
+        left =
+            Array2D.walkUntil
+                heightMap
+                0
+                { direction: Backwards, orientation: Rows, start: treeIndex }
+                \count, otherTree, otherIndex ->
+                    if Array2D.isRowStart otherIndex then
+                        Break count
+                    else
+                        visibleCount count otherTree otherIndex
 
-        right = Array2D.walkUntil heightMap 0 { direction: Forwards, orientation: Rows, start: treeIndex } \count, otherTree, otherIndex ->
-            if Array2D.isRowEnd heightMap otherIndex then
-                Break count
-            else
-                visibleCount count otherTree otherIndex
+        right =
+            Array2D.walkUntil
+                heightMap
+                0
+                { direction: Forwards, orientation: Rows, start: treeIndex }
+                \count, otherTree, otherIndex ->
+                    if Array2D.isRowEnd heightMap otherIndex then
+                        Break count
+                    else
+                        visibleCount count otherTree otherIndex
 
-        up = Array2D.walkUntil heightMap 0 { direction: Backwards, orientation: Cols, start: treeIndex } \count, otherTree, otherIndex ->
-            if Array2D.isColStart otherIndex then
-                Break count
-            else
-                visibleCount count otherTree otherIndex
+        up =
+            Array2D.walkUntil
+                heightMap
+                0
+                { direction: Backwards, orientation: Cols, start: treeIndex }
+                \count, otherTree, otherIndex ->
+                    if Array2D.isColStart otherIndex then
+                        Break count
+                    else
+                        visibleCount count otherTree otherIndex
 
-        down = Array2D.walkUntil heightMap 0 { direction: Forwards, orientation: Cols, start: treeIndex } \count, otherTree, otherIndex ->
-            if Array2D.isColEnd heightMap otherIndex then
-                Break count
-            else
-                visibleCount count otherTree otherIndex
+        down =
+            Array2D.walkUntil
+                heightMap
+                0
+                { direction: Forwards, orientation: Cols, start: treeIndex }
+                \count, otherTree, otherIndex ->
+                    if Array2D.isColEnd heightMap otherIndex then
+                        Break count
+                    else
+                        visibleCount count otherTree otherIndex
 
         { index: treeIndex, left, right, up, down }
 
@@ -134,7 +170,7 @@ mostScenicTree : SightLinesMap -> TreeSightLines
 mostScenicTree = \trees ->
     startState =
         trees
-        |> Array2D.get {x: 0, y: 0}
+        |> Array2D.get { x: 0, y: 0 }
         |> orCrash "Unexpected empty array"
 
     Array2D.walk trees startState { direction: Forwards, orientation: Rows, start: { x: 0, y: 0 } } \state, nextTree, _index ->
@@ -144,10 +180,10 @@ mostScenicTree = \trees ->
             state
 
 scenicScore : TreeSightLines -> Nat
-scenicScore = \{left, right, up, down} -> left * right * up * down
+scenicScore = \{ left, right, up, down } -> left * right * up * down
 
 displayScenicTreeMap : HeightMap, TreeSightLines -> Str
-displayScenicTreeMap = \heightMap, {index, right, left, up, down} ->
+displayScenicTreeMap = \heightMap, { index, right, left, up, down } ->
     rightSegment = List.range { start: After index.y, end: Length right }
     leftSegment = List.range { start: At (index.y - left), end: Length left }
     upSegment = List.range { start: At (index.x - up), end: Length up }
