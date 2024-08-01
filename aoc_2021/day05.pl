@@ -48,8 +48,9 @@ non_diagonal_line({X,_}-{X,_}).
 non_diagonal_line({_,Y}-{_,Y}).
 
 num_intersection_points(Lines, Count) :-
-   setof(Point, intersection(Lines, Point), Intersections),
-   length(Intersections, Count).
+   setof(Intersection, intersection(Lines, Intersection), Intersections),
+   maplist(size, Intersections, Sizes),
+   sum_list(Sizes, Count).
 
 intersection(Lines, Point) :-
    unordered_pair(Lines, {Line1, Line2}),
@@ -58,8 +59,8 @@ intersection(Lines, Point) :-
 intersection(Line1, Line2, {X,Y}) :-
    line_point(Line1, {X1,Y1}),
    line_point(Line2, {X2,Y2}),
-   X #= X1, X #= X2, indomain(X),
-   Y #= Y1, Y #= Y2, indomain(Y).
+   X #= X1, X #= X2,
+   Y #= Y1, Y #= Y2.
 
 line_point({X,Y}-{X,Y}, {X,Y}).
 
@@ -72,15 +73,13 @@ line_point({X,Y1}-{X,Y2}, {X,Y}) :-
    low_high({Y1,Y2}, {YL,YH}),
    Y in YL..YH.
 
-line_point({X1,Y1}-{X2,Y2}, Point) :-
+line_point({X1,Y1}-{X2,Y2}, {X,Y}) :-
    X1 #\= X2, Y1 #\= Y2,
    (X1 #> X2 ->
-      line_point({X2,Y2}-{X1,Y1}, Point)
+      line_point({X2,Y2}-{X1,Y1}, {X,Y})
    ;  Diff #= X2 - X1, N in 0..Diff,
-      (Y1 #< Y2 ->
-         Point = {X1 + N, Y1 + N}
-      ;  Point = {X1 + N, Y1 - N}
-      )
+      X #= X1 + N,
+      (Y1 #< Y2 -> Y #= Y1 + N ; Y #= Y1 - N)
    ).
 
 low_high({A,B}, {L,H}) :-
@@ -91,3 +90,7 @@ low_high({A,B}, {L,H}) :-
 
 unordered_pair([A | List], Pair) :-
    member(B, List), Pair = {A,B} ; unordered_pair(List, Pair).
+
+size({X,Y}, Size) :-
+   fd_size(X, XSize), fd_size(Y, YSize),
+   (XSize #> YSize -> Size #= XSize ; Size #= YSize).
