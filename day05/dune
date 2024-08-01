@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (libraries base core yojson)
+ (preprocess
+  (pps ppx_yojson_conv)))
