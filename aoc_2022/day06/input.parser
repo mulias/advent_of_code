@@ -1,0 +1,11 @@
+until(char, four_different_chars) + four_different_chars;
+
+four_different_chars =
+  A <- char &
+  B <- char & not_eq(B, A) &
+  C <- char & not_eq(C, A) & not_eq(C, B) &
+  D <- char & not_eq(D, A) & not_eq(D, B) & not_eq(D, C) &
+  Chars <- const(A) + const(B) + const(C) + const(D) $
+  Chars;
+
+not_eq(X, Y) = null <- (X <- const(Y) $ X) | const(null) $ true ;

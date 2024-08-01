@@ -1,0 +1,55 @@
+crate = "[" > char < "]" ;
+no_crate = "   " $ null ;
+cargo = crate | no_crate ;
+
+move =
+  "move" & ws & Count <- number & ws &
+  "from" & ws & From  <- number & ws &
+  "to"   & ws & To    <- number & ws $
+  {"count": Count, "from": From, "to": To} ;
+
+CargoRows <- table_sep(cargo, " ", nl) &
+Labels <- ws > array_sep(number, ws) < ws &
+Steps <- array(move) &
+CargoCols <- rotate_table_counter_clockwise(CargoRows) &
+Cargo <- map(reject(null), CargoCols) &
+Stacks <- zip(Labels, Cargo) $
+{"stacks": Stacks, "steps": Steps} ;
+
+###
+# Helpers
+###
+
+table_sep(el, sep, row_sep) = array_sep(array_sep(el, sep), row_sep) ;
+
+zip(A, B) =
+  [AFirst, ...ARest] <- const(A) &
+  [BFirst, ...BRest] <- const(B) &
+  Rest <- zip(ARest, BRest) | const([]) $
+  [[AFirst, BFirst], ...Rest] ;
+
+map(p, Array) =
+  [First, ...Rest] <- const(Array) &
+  Result <- p(First) &
+  ResultRest <- map(p, Rest) | const([]) $
+  [Result, ...ResultRest] ;
+
+head(Array) = [Head, ..._Tail] <- const(Array) $ Head ;
+
+tail(Array) = [_Head, ...Tail] <- const(Array) $ Tail ;
+
+rotate_table_counter_clockwise(T) =
+  FirstPerRow <- map(head, T) &
+  RestPerRow <- map(tail, T) &
+  Rest <- rotate_table_counter_clockwise(RestPerRow) | const([]) $
+  [FirstPerRow, ...Rest] ;
+
+reverse(A) =
+  [Head, ...Tail] <- const(A) &
+  Rest <- reverse(Tail) | const([]) $
+  [...Rest, Head] ;
+
+reject(Value, Array) =
+  [Value, ...Tail] <- const(Array) & Rest <- reject(Value, Tail) $ Rest |
+  [NotValue, ...Tail] <- const(Array) & Rest <- reject(Value, Tail) $ [NotValue, ...Rest] |
+  const([]) ;

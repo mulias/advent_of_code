@@ -1,0 +1,22 @@
+array(monkey) ;
+
+monkey =
+  "Monkey " & Id <- int & ":" & ws &
+  "Starting items: " & Items <- array_sep(int, "," < ws) & ws &
+  "Operation: new = " &
+    Left <- int | word & ws &
+    Op <- word & ws &
+    Right <- int | word & ws &
+  "Test: divisible by " & Test <- int & ws &
+  "If true: throw to monkey " & IfTrue <- int & ws &
+  "If false: throw to monkey " & IfFalse <- int & ws $
+  {
+    "id": Id,
+    "items": Items,
+    "inspect_left": Left,
+    "inspect_op": Op,
+    "inspect_right": Right,
+    "test": Test,
+    "if_true": IfTrue,
+    "if_false": IfFalse
+  } ;
