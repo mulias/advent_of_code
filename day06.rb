@@ -39,7 +39,7 @@ def fish_on_day(d)
   fish = File.read("puzzle_inputs/day06.txt").split(",").map { |s| s.to_i }
   timeline = fish_creation_timeline(d)
 
-  fish.map { |f| timeline[f] }.inject(:+)
+  fish.map { |f| timeline[f] }.inject(&:+)
 end
 
 puts "Part 1: #{fish_on_day(80)}"

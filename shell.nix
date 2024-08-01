@@ -8,5 +8,10 @@ let
 in
 
 mkShell {
-  buildInputs = [ unstable.swiProlog unstable.ruby ];
+  buildInputs = [
+    unstable.swiProlog
+    unstable.ruby
+    nodejs_22
+    elixir_1_15
+  ];
 }

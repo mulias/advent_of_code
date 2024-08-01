@@ -11,10 +11,10 @@ main :-
    format("Part 2: ~d~n", Part2),
    run_tests.
 
-:- begin_tests(day01).
+:- begin_tests(day05).
 test(part_1) :- part_1(6007).
 test(part_2) :- part_2(19349).
-:- end_tests(day01).
+:- end_tests(day05).
 
 read_puzzle_input(Lines) :-
    read_file_to_string("puzzle_inputs/day05.txt", Content, []),

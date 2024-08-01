@@ -9,10 +9,10 @@ main :-
    format("Part 2: ~d~n", Part2),
    run_tests.
 
-:- begin_tests(day01).
+:- begin_tests(day03).
 test(part_1) :- part_1(2498354).
 test(part_2) :- part_2(3277956).
-:- end_tests(day01).
+:- end_tests(day03).
 
 % Make a list of lists of bits, e.g. `[[1,0,1|...],[0,1,1|...]|...]`.
 read_puzzle_input(Binaries) :-
