@@ -1,14 +1,14 @@
-interface Range exposes [Range, new, min, max, intersection, isContained] imports []
+module [Range, new, min, max, intersection, isContained]
 
-Range := { first : Nat, last : Nat } implements [Eq { isEq: isEq }]
+Range := { first : U64, last : U64 } implements [Eq { isEq: isEq }]
 
-new : Nat, Nat -> Range
+new : U64, U64 -> Range
 new = \a, b -> @Range { first: a, last: b }
 
-min : Range -> Nat
+min : Range -> U64
 min = \@Range { first, last } -> if first <= last then first else last
 
-max : Range -> Nat
+max : Range -> U64
 max = \@Range { first, last } -> if first <= last then last else first
 
 isEq : Range, Range -> Bool

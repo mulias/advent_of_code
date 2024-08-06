@@ -1,22 +1,19 @@
-app "day04"
-    packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br",
-        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
-    }
-    imports [
-        cli.Stdout,
-        parser.Core.{ Parser, between, sepBy, chompWhile, keep, skip, const },
-        parser.String.{ RawStr, parseStr, codeunit, digits },
-        Range.{ Range },
-        "input.txt" as puzzleInput : Str,
-        "example.txt" as exampleInput : Str,
-    ]
-    provides [main] to cli
+app [main] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.12.0/Lb8EgiejTUzbggO2HVVuPJFkwvvsfW6LojkLR20kTVE.tar.br",
+    parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.7.1/MvLlME9RxOBjl0QCxyn3LIaoG9pSlaNxCa-t3BfbPNc.tar.br",
+}
+
+import cli.Stdout
+import parser.Core exposing [Parser, between, sepBy, chompWhile, keep, skip, const]
+import parser.String exposing [Utf8, parseStr, codeunit, digits]
+import Range exposing [Range]
+import "input.txt" as puzzleInput : Str
+import "example.txt" as exampleInput : Str
 
 main =
     part1 = completeOverlapCount puzzleAssignmentPairs |> Num.toStr
     part2 = anyOverlapCount puzzleAssignmentPairs |> Num.toStr
-    Stdout.line "Part 1: \(part1)\nPart 2: \(part2)"
+    Stdout.line "Part 1: $(part1)\nPart 2: $(part2)"
 
 AssignmentPair : (Range, Range)
 
@@ -29,22 +26,22 @@ expect completeOverlapCount puzzleAssignmentPairs == 500
 expect anyOverlapCount exampleAssignmentPairs == 4
 expect anyOverlapCount puzzleAssignmentPairs == 815
 
-completeOverlapCount : List AssignmentPair -> Nat
+completeOverlapCount : List AssignmentPair -> U64
 completeOverlapCount = \assignmentPairs ->
-    (elf1, elf2) <- List.countIf assignmentPairs
-    Range.isContained elf1 elf2 || Range.isContained elf2 elf1
+    List.countIf assignmentPairs \(elf1, elf2) ->
+        Range.isContained elf1 elf2 || Range.isContained elf2 elf1
 
-anyOverlapCount : List AssignmentPair -> Nat
+anyOverlapCount : List AssignmentPair -> U64
 anyOverlapCount = \assignmentPairs ->
-    (elf1, elf2) <- List.countIf assignmentPairs
-    Range.intersection elf1 elf2 != Disjoint
+    List.countIf assignmentPairs \(elf1, elf2) ->
+        Range.intersection elf1 elf2 != Disjoint
 
 parseInput : Str -> List AssignmentPair
 parseInput = \input ->
     when parseStr inputParser input is
         Ok pairs -> pairs
-        Err (ParsingFailure msg) -> crash "parsing failure '\(msg)'"
-        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
+        Err (ParsingFailure msg) -> crash "parsing failure '$(msg)'"
+        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '$(leftover)'"
 
 inputParser =
     assignmentPairParser
@@ -57,7 +54,7 @@ assignmentPairParser =
     |> skip (codeunit ',')
     |> keep rangeParser
 
-rangeParser : Parser RawStr Range
+rangeParser : Parser Utf8 Range
 rangeParser =
     const (\first -> \last -> Range.new first last)
     |> keep digits

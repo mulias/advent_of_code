@@ -1,22 +1,19 @@
-app "day07"
-    packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br",
-        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
-    }
-    imports [
-        cli.Stdout,
-        parser.Core.{ Parser, parsePartial, buildPrimitiveParser, many, between, chompWhile, chompUntil, keep, skip, const, maybe },
-        parser.String.{ RawStr, parseStr, string, digits },
-        "input.txt" as puzzleInput : Str,
-        "example.txt" as exampleInput : Str,
-    ]
-    provides [main] to cli
+app [main] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.12.0/Lb8EgiejTUzbggO2HVVuPJFkwvvsfW6LojkLR20kTVE.tar.br",
+    parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.7.1/MvLlME9RxOBjl0QCxyn3LIaoG9pSlaNxCa-t3BfbPNc.tar.br",
+}
+
+import cli.Stdout
+import parser.Core exposing [Parser, parsePartial, buildPrimitiveParser, many, between, chompWhile, chompUntil, keep, skip, const, maybe]
+import parser.String exposing [Utf8, parseStr, string, digits]
+import "input.txt" as puzzleInput : Str
+import "example.txt" as exampleInput : Str
 
 main =
     dirSizes = sizes puzzleRootDir
     part1 = dirSizes |> sumOfSmallDirs |> Num.toStr
     part2 = dirSizes |> sizeOfDirToDelete |> Num.toStr
-    Stdout.line "Part 1: \(part1)\nPart 2: \(part2)"
+    Stdout.line "Part 1: $(part1)\nPart 2: $(part2)"
 
 exampleRootDir = parseInput exampleInput
 puzzleRootDir = parseInput puzzleInput
@@ -28,14 +25,14 @@ expect puzzleRootDir |> sizes |> sumOfSmallDirs == 1501149
 expect puzzleRootDir |> sizes |> sizeOfDirToDelete == 10096985
 
 Dir : [
-    Branch { files : List Nat, subDirs : List Dir },
-    Leaf { files : List Nat },
+    Branch { files : List U64, subDirs : List Dir },
+    Leaf { files : List U64 },
 ]
 
 DirSizes : {
-    directDirTotal : Nat,
-    directSubDirTotals : List Nat,
-    indirectSubDirTotals : List Nat,
+    directDirTotal : U64,
+    directSubDirTotals : List U64,
+    indirectSubDirTotals : List U64,
 }
 
 smallDirSize = 100000
@@ -64,7 +61,7 @@ sizes = \dir ->
                 indirectSubDirTotals: [],
             }
 
-allSizes : DirSizes -> List Nat
+allSizes : DirSizes -> List U64
 allSizes = \dirSizes ->
     List.join [
         [size dirSizes],
@@ -72,17 +69,17 @@ allSizes = \dirSizes ->
         dirSizes.indirectSubDirTotals,
     ]
 
-size : DirSizes -> Nat
+size : DirSizes -> U64
 size = \{ directDirTotal, directSubDirTotals } -> directDirTotal + (List.sum directSubDirTotals)
 
-sumOfSmallDirs : DirSizes -> Nat
+sumOfSmallDirs : DirSizes -> U64
 sumOfSmallDirs = \dirSizes ->
     dirSizes
     |> allSizes
     |> List.keepIf \dirSize -> dirSize <= smallDirSize
     |> List.sum
 
-sizeOfDirToDelete : DirSizes -> Nat
+sizeOfDirToDelete : DirSizes -> U64
 sizeOfDirToDelete = \dirSizes ->
     rootDirSize = size dirSizes
     requiredSpace = requiredSize - (filesystemSize - rootDirSize)
@@ -94,7 +91,7 @@ sizeOfDirToDelete = \dirSizes ->
     |> List.first
     |> Result.withDefault 0
 
-newDir : List Nat, List Dir -> Dir
+newDir : List U64, List Dir -> Dir
 newDir = \files, subDirs ->
     if List.isEmpty subDirs then
         Leaf { files }
@@ -105,13 +102,13 @@ parseInput : Str -> Dir
 parseInput = \inputStr ->
     when parseStr inputParser inputStr is
         Ok input -> input
-        Err (ParsingFailure msg) -> crash "parsing failure '\(msg)'"
-        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
+        Err (ParsingFailure msg) -> crash "parsing failure '$(msg)'"
+        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '$(leftover)'"
 
-inputParser : Parser RawStr Dir
+inputParser : Parser Utf8 Dir
 inputParser = dirParser |> between optionalWhitespace optionalWhitespace
 
-dirParser : Parser RawStr Dir
+dirParser : Parser Utf8 Dir
 dirParser =
     const (\files -> \subDirs -> newDir files subDirs)
     |> skip dirNameParser
@@ -120,14 +117,14 @@ dirParser =
     |> skip (maybe dirBackParser)
     |> skip optionalWhitespace
 
-dirNameParser : Parser RawStr RawStr
+dirNameParser : Parser Utf8 Utf8
 dirNameParser =
     const (\name -> name)
     |> skip (string "$ cd ")
     |> keep (chompUntil '\n')
     |> skip optionalWhitespace
 
-filesParser : Parser RawStr (List Nat)
+filesParser : Parser Utf8 (List U64)
 filesParser =
     const (\fileSizes -> fileSizes)
     |> skip (string "$ ls\n")
@@ -136,7 +133,7 @@ filesParser =
     |> skip (many dirListingParser)
     |> skip optionalWhitespace
 
-fileSizeParser : Parser RawStr Nat
+fileSizeParser : Parser Utf8 U64
 fileSizeParser =
     const (\fileSize -> fileSize)
     |> skip (many dirListingParser)
@@ -145,7 +142,7 @@ fileSizeParser =
     |> skip optionalWhitespace
     |> skip (many dirListingParser)
 
-dirListingParser : Parser RawStr RawStr
+dirListingParser : Parser Utf8 Utf8
 dirListingParser =
     const (\name -> name)
     |> skip optionalWhitespace
@@ -153,7 +150,7 @@ dirListingParser =
     |> keep (chompUntil '\n')
     |> skip optionalWhitespace
 
-subDirsParser : Parser RawStr (List Dir)
+subDirsParser : Parser Utf8 (List Dir)
 subDirsParser =
     buildPrimitiveParser \input ->
         parsePartial (manyUntil dirParser dirBackParser) input

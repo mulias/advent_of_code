@@ -1,21 +1,18 @@
-app "day03"
-    packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br",
-        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
-    }
-    imports [
-        cli.Stdout,
-        parser.Core.{ Parser, between, sepBy, map, chompUntil, chompWhile },
-        parser.String.{ parseStr },
-        "input.txt" as puzzleInput : Str,
-        "example.txt" as exampleInput : Str,
-    ]
-    provides [main] to cli
+app [main] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.12.0/Lb8EgiejTUzbggO2HVVuPJFkwvvsfW6LojkLR20kTVE.tar.br",
+    parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.7.1/MvLlME9RxOBjl0QCxyn3LIaoG9pSlaNxCa-t3BfbPNc.tar.br",
+}
+
+import cli.Stdout
+import parser.Core exposing [Parser, between, sepBy, map, chompUntil, chompWhile]
+import parser.String exposing [parseStr]
+import "input.txt" as puzzleInput : Str
+import "example.txt" as exampleInput : Str
 
 main =
     part1 = puzzleRucksacks |> sharedItemPrioritiesSum |> Num.toStr
     part2 = puzzleRucksacks |> groupSharedItemPrioritiesSum |> Num.toStr
-    Stdout.line "Part 1: \(part1)\nPart 2: \(part2)"
+    Stdout.line "Part 1: $(part1)\nPart 2: $(part2)"
 
 exampleRucksacks = parseRucksacks exampleInput
 puzzleRucksacks = parseRucksacks puzzleInput
@@ -66,7 +63,7 @@ itemPriority = \item ->
     else if 'A' <= item && item <= 'Z' then
         item + 27 - 'A'
     else
-        crash "Unexpected item '\(Num.toStr item)'"
+        crash "Unexpected item '$(Num.toStr item)'"
 
 allItems : Rucksack -> Set Item
 allItems = \(left, right) -> Set.union left right
@@ -82,8 +79,8 @@ parseRucksacks : Str -> List Rucksack
 parseRucksacks = \input ->
     when parseStr inputParser input is
         Ok rucksacks -> rucksacks
-        Err (ParsingFailure msg) -> crash "parsing failure '\(msg)'"
-        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
+        Err (ParsingFailure msg) -> crash "parsing failure '$(msg)'"
+        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '$(leftover)'"
 
 inputParser =
     rucksackParser
@@ -91,10 +88,11 @@ inputParser =
     |> between optionalWhitespace optionalWhitespace
 
 rucksackParser =
-    items <- chompUntil '\n' |> map
-    halfway = Num.divTrunc (List.len items) 2
-    { before, others } = List.split items halfway
-    (Set.fromList before, Set.fromList others)
+    chompUntil '\n'
+    |> map \items ->
+        halfway = Num.divTrunc (List.len items) 2
+        { before, others } = List.split items halfway
+        (Set.fromList before, Set.fromList others)
 
 isWhitespace : U8 -> Bool
 isWhitespace = \char ->

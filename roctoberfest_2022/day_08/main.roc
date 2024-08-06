@@ -1,19 +1,17 @@
-app "day08"
-    packages {
-        cli: "https://github.com/roc-lang/basic-cli/releases/download/0.7.0/bkGby8jb0tmZYsy2hg1E_B2QrCgcSTxdUlHtETwm5m4.tar.br",
-        parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.2.0/dJQSsSmorujhiPNIvJKlQoI92RFIG_JQwUfIxZsCSwE.tar.br",
-        array2d: "../../../roc-array2d/package/main.roc",
-    }
-    imports [
-        cli.Stdout,
-        cli.Task,
-        parser.Core.{ Parser, map, between, chompWhile, sepBy1, oneOrMore },
-        parser.String.{ RawStr, parseStr, string, digit },
-        array2d.Array2D.{ Array2D },
-        "input.txt" as puzzleInput : Str,
-        "example.txt" as exampleInput : Str,
-    ]
-    provides [main] to cli
+app [main] {
+    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.12.0/Lb8EgiejTUzbggO2HVVuPJFkwvvsfW6LojkLR20kTVE.tar.br",
+    parser: "https://github.com/lukewilliamboswell/roc-parser/releases/download/0.7.1/MvLlME9RxOBjl0QCxyn3LIaoG9pSlaNxCa-t3BfbPNc.tar.br",
+    array2d: "https://github.com/mulias/roc-array2d/releases/download/v0.3.0/je3X2cSdUa6b24fO1SS_vGNS5MwU-a-3r1niP_7iG6k.tar.br",
+}
+
+import cli.Stdout
+import cli.Task exposing [Task]
+import parser.Core exposing [Parser, map, between, chompWhile, sepBy1, oneOrMore]
+import parser.String exposing [parseStr, string, digit]
+import array2d.Array2D exposing [Array2D]
+import array2d.Index2D exposing [Index2D]
+import "input.txt" as puzzleInput : Str
+import "example.txt" as exampleInput : Str
 
 exampleTreeHeights = parseInput exampleInput
 puzzleTreeHeights = parseInput puzzleInput
@@ -29,17 +27,16 @@ main =
     sightLines = treeSightLines puzzleTreeHeights
     scenicTree = mostScenicTree sightLines
 
-    _ <- Stdout.line "Part 1: \(visibilities |> countVisible |> Num.toStr)" |> Task.await
-    _ <- Stdout.write "\(displayVisibilityMap visibilities)\n\n" |> Task.await
-    _ <- Stdout.line "Part 2: \(scenicTree |> scenicScore |> Num.toStr)" |> Task.await
-    _ <- Stdout.write "\(displayScenicTreeMap puzzleTreeHeights scenicTree)\n\n" |> Task.await
-    Task.ok {}
+    Stdout.line! "Part 1: $(visibilities |> countVisible |> Num.toStr)"
+    Stdout.line! "$(displayVisibilityMap visibilities)\n"
+    Stdout.line! "Part 2: $(scenicTree |> scenicScore |> Num.toStr)"
+    Stdout.line! "$(displayScenicTreeMap puzzleTreeHeights scenicTree)\n"
 
-HeightMap : Array2D Nat
+HeightMap : Array2D U64
 
 VisibilityMap : Array2D Bool
 
-TreeSightLines : { index : Array2D.Index, left : Nat, right : Nat, up : Nat, down : Nat }
+TreeSightLines : { index : Index2D, left : U64, right : U64, up : U64, down : U64 }
 
 SightLinesMap : Array2D TreeSightLines
 
@@ -60,7 +57,7 @@ visibleTrees = \heightMap ->
             startState
             { direction: Forwards, orientation: Rows }
             \state, treeHeight, index ->
-                if Array2D.isRowStart index || treeHeight > state.maxHeight then
+                if Index2D.isRowStart index || treeHeight > state.maxHeight then
                     setTreeVisible state treeHeight index
                 else
                     state
@@ -71,7 +68,7 @@ visibleTrees = \heightMap ->
             withLeft
             { direction: Backwards, orientation: Rows }
             \state, treeHeight, index ->
-                if Array2D.isRowEnd heightMap index || treeHeight > state.maxHeight then
+                if Index2D.isRowEnd index (Array2D.shape heightMap) || treeHeight > state.maxHeight then
                     setTreeVisible state treeHeight index
                 else
                     state
@@ -82,7 +79,7 @@ visibleTrees = \heightMap ->
             withRight
             { direction: Forwards, orientation: Cols }
             \state, treeHeight, index ->
-                if Array2D.isColStart index || treeHeight > state.maxHeight then
+                if Index2D.isColStart index || treeHeight > state.maxHeight then
                     setTreeVisible state treeHeight index
                 else
                     state
@@ -93,14 +90,14 @@ visibleTrees = \heightMap ->
             withTop
             { direction: Backwards, orientation: Cols }
             \state, treeHeight, index ->
-                if Array2D.isColEnd heightMap index || treeHeight > state.maxHeight then
+                if Index2D.isColEnd index (Array2D.shape heightMap) || treeHeight > state.maxHeight then
                     setTreeVisible state treeHeight index
                 else
                     state
 
     finalState.visibilityMap
 
-countVisible : VisibilityMap -> Nat
+countVisible : VisibilityMap -> U64
 countVisible = \treeVisibilities -> Array2D.countIf treeVisibilities \visible -> visible
 
 displayVisibilityMap : VisibilityMap -> Str
@@ -126,7 +123,7 @@ treeSightLines = \heightMap ->
                 0
                 { direction: Backwards, orientation: Rows, start: treeIndex }
                 \count, otherTree, otherIndex ->
-                    if Array2D.isRowStart otherIndex then
+                    if Index2D.isRowStart otherIndex then
                         Break count
                     else
                         visibleCount count otherTree otherIndex
@@ -137,7 +134,7 @@ treeSightLines = \heightMap ->
                 0
                 { direction: Forwards, orientation: Rows, start: treeIndex }
                 \count, otherTree, otherIndex ->
-                    if Array2D.isRowEnd heightMap otherIndex then
+                    if Index2D.isRowEnd otherIndex (Array2D.shape heightMap) then
                         Break count
                     else
                         visibleCount count otherTree otherIndex
@@ -148,7 +145,7 @@ treeSightLines = \heightMap ->
                 0
                 { direction: Backwards, orientation: Cols, start: treeIndex }
                 \count, otherTree, otherIndex ->
-                    if Array2D.isColStart otherIndex then
+                    if Index2D.isColStart otherIndex then
                         Break count
                     else
                         visibleCount count otherTree otherIndex
@@ -159,7 +156,7 @@ treeSightLines = \heightMap ->
                 0
                 { direction: Forwards, orientation: Cols, start: treeIndex }
                 \count, otherTree, otherIndex ->
-                    if Array2D.isColEnd heightMap otherIndex then
+                    if Index2D.isColEnd otherIndex (Array2D.shape heightMap) then
                         Break count
                     else
                         visibleCount count otherTree otherIndex
@@ -170,42 +167,42 @@ mostScenicTree : SightLinesMap -> TreeSightLines
 mostScenicTree = \trees ->
     startState =
         trees
-        |> Array2D.get { x: 0, y: 0 }
+        |> Array2D.get { row: 0, col: 0 }
         |> orCrash "Unexpected empty array"
 
-    Array2D.walk trees startState { direction: Forwards, orientation: Rows, start: { x: 0, y: 0 } } \state, nextTree, _index ->
+    Array2D.walk trees startState { direction: Forwards } \state, nextTree, _index ->
         if scenicScore state < scenicScore nextTree then
             nextTree
         else
             state
 
-scenicScore : TreeSightLines -> Nat
+scenicScore : TreeSightLines -> U64
 scenicScore = \{ left, right, up, down } -> left * right * up * down
 
 displayScenicTreeMap : HeightMap, TreeSightLines -> Str
 displayScenicTreeMap = \heightMap, { index, right, left, up, down } ->
-    rightSegment = List.range { start: After index.y, end: Length right }
-    leftSegment = List.range { start: At (index.y - left), end: Length left }
-    upSegment = List.range { start: At (index.x - up), end: Length up }
-    downSegment = List.range { start: After index.x, end: Length down }
+    rightSegment = List.range { start: After index.col, end: Length right }
+    leftSegment = List.range { start: At (index.col - left), end: Length left }
+    upSegment = List.range { start: At (index.row - up), end: Length up }
+    downSegment = List.range { start: After index.row, end: Length down }
 
     scenicTreeMap = Array2D.map heightMap Num.toStr
 
-    withRight = List.walk rightSegment scenicTreeMap \mapState, y ->
-        Array2D.set mapState { x: index.x, y } "."
+    withRight = List.walk rightSegment scenicTreeMap \mapState, col ->
+        Array2D.set mapState { row: index.row, col } "."
 
-    withLeft = List.walk leftSegment withRight \mapState, y ->
-        Array2D.set mapState { x: index.x, y } "."
+    withLeft = List.walk leftSegment withRight \mapState, col ->
+        Array2D.set mapState { row: index.row, col } "."
 
-    withUp = List.walk upSegment withLeft \mapState, x ->
-        Array2D.set mapState { x, y: index.y } "."
+    withUp = List.walk upSegment withLeft \mapState, row ->
+        Array2D.set mapState { row, col: index.col } "."
 
-    withAll = List.walk downSegment withUp \mapState, x ->
-        Array2D.set mapState { x, y: index.y } "."
+    withAll = List.walk downSegment withUp \mapState, row ->
+        Array2D.set mapState { row, col: index.col } "."
 
     joinArrayWith withAll "" "\n"
 
-parseInput : Str -> Array2D Nat
+parseInput : Str -> Array2D U64
 parseInput = \inputStr ->
     parser =
         oneOrMore digit
@@ -218,8 +215,8 @@ parseInput = \inputStr ->
 
     when parseStr parser inputStr is
         Ok treeHeights -> treeHeights
-        Err (ParsingFailure msg) -> crash "parsing failure '\(msg)'"
-        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '\(leftover)'"
+        Err (ParsingFailure msg) -> crash "parsing failure '$(msg)'"
+        Err (ParsingIncomplete leftover) -> crash "parsing incomplete '$(leftover)'"
 
 isWhitespace : U8 -> Bool
 isWhitespace = \char ->

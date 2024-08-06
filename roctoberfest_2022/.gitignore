@@ -4,6 +4,5 @@
 # Formatter debug output
 **/*.roc-format-failed
 
-# Ignore bin files, which by convention are named after the AoC day, "day07" etc
-**/day??
+# Ignore bin files
 **/main
